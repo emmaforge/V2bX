@@ -286,6 +286,15 @@ func buildV2ray(config *conf.Options, nodeInfo *panel.NodeInfo, inbound *coreCon
 		} else {
 			var err error
 			decryption := "none"
+			// Xboard: panel sends `decryption` verbatim (xray format:
+			// dot-separated base64 keys, see xray-core vless inbound,
+			// which splits on "." and base64-decodes each part). Use it
+			// as-is when the v2board-style Encryption object is absent.
+			// Do NOT prefix it with a method name: current xray-core
+			// would try to base64-decode that prefix as a key and fail.
+			if nodeInfo.VAllss.Encryption == "" && nodeInfo.VAllss.Decryption != "" {
+				decryption = nodeInfo.VAllss.Decryption
+			}
 			if nodeInfo.VAllss.Encryption != "" {
 				switch nodeInfo.VAllss.Encryption {
 				case "mlkem768x25519plus":
