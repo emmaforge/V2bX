@@ -81,15 +81,15 @@ func inboundSignature(n *panel.NodeInfo) string {
 	if n.VAllss != nil {
 		v := n.VAllss
 		// NetworkSettings is the field buildInbound actually consumes.
-		fmt.Fprintf(&b, "net=%s|flow=%s|enc=%s|sni=%s|ns=%s|tls=%+v|",
-			v.Network, v.Flow, v.Encryption, v.ServerName,
+		fmt.Fprintf(&b, "net=%s|flow=%s|enc=%s|dec=%s|sni=%s|ns=%s|tls=%+v|",
+			v.Network, v.Flow, v.Encryption, v.Decryption, v.ServerName,
 			string(v.NetworkSettings), v.TlsSettings)
 	}
 	if n.Trojan != nil {
 		fmt.Fprintf(&b, "tnet=%s|tns=%s|", n.Trojan.Network, string(n.Trojan.NetworkSettings))
 	}
 	if n.Shadowsocks != nil {
-		fmt.Fprintf(&b, "cipher=%s|key=%s|", n.Shadowsocks.Cipher, n.Shadowsocks.ServerKey)
+		fmt.Fprintf(&b, "cipher=%s|key=%s|plugin=%s|pluginopts=%s|", n.Shadowsocks.Cipher, n.Shadowsocks.ServerKey, n.Shadowsocks.Plugin, n.Shadowsocks.PluginOpts)
 	}
 	// 面板下发的证书配置也决定入站怎么建。以前没算进来，hy2 这类签名里只有
 	// 端口的节点，面板换了 remote 证书后不会重建、也就不会写入新证书：
