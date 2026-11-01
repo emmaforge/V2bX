@@ -78,12 +78,12 @@ func (b *Sing) AddUsers(p *core.AddUsersParams) (added int, err error) {
 						continue
 					}
 					password = base64.StdEncoding.EncodeToString([]byte(password[:16]))
-				case "2022-blake3-aes-256-gcm":
+				case "2022-blake3-aes-256-gcm", "2022-blake3-chacha20-poly1305":
 					if len(password) < 32 {
 						logrus.WithFields(logrus.Fields{
 							"tag":  p.Tag,
 							"uuid": password,
-						}).Warn("Shadowsocks 2022 (aes-256) user UUID < 32 bytes, skipping")
+						}).Warn("Shadowsocks 2022 (aes-256/chacha) user UUID < 32 bytes, skipping")
 						continue
 					}
 					password = base64.StdEncoding.EncodeToString([]byte(password[:32]))
