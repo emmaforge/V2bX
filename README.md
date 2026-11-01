@@ -1,15 +1,15 @@
 # V2bX
 
 <p align="center">
-  <img src="https://img.shields.io/github/v/release/Shannon-x/V2bX?style=flat-square" alt="Release">
-  <img src="https://img.shields.io/github/actions/workflow/status/Shannon-x/V2bX/release.yml?style=flat-square&label=Build" alt="Build Status">
-  <img src="https://img.shields.io/github/license/Shannon-x/V2bX?style=flat-square" alt="License">
-  <img src="https://img.shields.io/github/go-mod/go-version/Shannon-x/V2bX?style=flat-square" alt="Go Version">
+  <img src="https://img.shields.io/github/v/release/zzx327317-creator/V2bX?style=flat-square" alt="Release">
+  <img src="https://img.shields.io/github/actions/workflow/status/zzx327317-creator/V2bX/release.yml?style=flat-square&label=Build" alt="Build Status">
+  <img src="https://img.shields.io/github/license/zzx327317-creator/V2bX?style=flat-square" alt="License">
+  <img src="https://img.shields.io/github/go-mod/go-version/zzx327317-creator/V2bX?style=flat-square" alt="Go Version">
 </p>
 
 **V2bX** 是一个基于多内核的 V2board 节点服务端程序，支持同时对接多个节点，轻量、高效、易部署。
 
-> 本项目为修改版，基于 [InazumaV/V2bX](https://github.com/InazumaV/V2bX) 改进。内核依赖每日自动同步上游最新版本（Xray / sing-box / Hysteria2）。
+> 本仓库为 zzx327317-creator/V2bX，是 Shannon-x/V2bX 的 fork（上游源自 InazumaV/V2bX）。内核依赖每日自动同步上游最新版本（Xray / sing-box / Hysteria2）。后续由本仓库维护。
 
 ---
 
@@ -51,13 +51,13 @@
 支持 **Ubuntu / Debian / CentOS / Alpine / Arch**，支持 **amd64 / arm64 / armv7 / armv6 / armv5 / s390x / riscv64** 架构：
 
 ```bash
-wget -N https://raw.githubusercontent.com/Shannon-x/V2bX/dev_new/V2bX-script-master/install.sh && bash install.sh
+wget -N https://raw.githubusercontent.com/zzx327317-creator/V2bX/dev_new/V2bX-script-master/install.sh && bash install.sh
 ```
 
 安装指定版本：
 
 ```bash
-wget -N https://raw.githubusercontent.com/Shannon-x/V2bX/dev_new/V2bX-script-master/install.sh && bash install.sh v1.0.3
+wget -N https://raw.githubusercontent.com/zzx327317-creator/V2bX/dev_new/V2bX-script-master/install.sh && bash install.sh v1.0.3
 ```
 
 首次安装时脚本会询问是否自动生成配置文件，选择 `y` 即可进入交互式配置向导。
@@ -97,7 +97,7 @@ docker run -d \
   --network=host \
   -v /etc/V2bX:/etc/V2bX \
   -v /var/log/V2bX:/var/log/V2bX \
-  ghcr.io/shannon-x/v2bx:latest
+  ghcr.io/zzx327317-creator/v2bx:latest
 ```
 
 > `-v /var/log/V2bX:/var/log/V2bX` 用于持久化连接（access）日志；不挂载的话日志会留在容器可写层，
@@ -110,7 +110,7 @@ docker run -d \
 ```yaml
 services:
   v2bx:
-    image: ghcr.io/shannon-x/v2bx:latest
+    image: ghcr.io/zzx327317-creator/v2bx:latest
     container_name: v2bx
     restart: always
     network_mode: host
@@ -563,7 +563,7 @@ export SING_DNS_PATH=/etc/V2bX/sing_dns.json
 需要 Go 1.27.1 或更新版本，构建环境与 `go.mod` 保持一致。
 
 ```bash
-git clone https://github.com/Shannon-x/V2bX.git
+git clone https://github.com/zzx327317-creator/V2bX.git
 cd V2bX && git checkout dev_new
 
 GOEXPERIMENT=jsonv2 go build -v -o V2bX \
