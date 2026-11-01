@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"encoding/json"
+
+	"github.com/sirupsen/logrus"
 )
 
 // Security type
@@ -84,6 +86,13 @@ type VAllssNode struct {
 	// vless only
 	Flow          string        `json:"flow"`
 	RealityConfig RealityConfig `json:"-"`
+	// Xboard (cedar2025/Xboard) vless: buildNodeConfig returns a top-level
+	// `decryption` field (the server private key, verbatim xray format)
+	// when encryption is enabled, instead of v2board's `encryption` +
+	// `encryption_settings` object. Kept verbatim; xray inbound passes it
+	// through when Encryption is empty. Sing-box vless has no decryption
+	// option, so this field is xray-only.
+	Decryption string `json:"decryption"`
 }
 
 type TlsSettings struct {
@@ -131,6 +140,27 @@ type CertInfo struct {
 	PinnedPeerCertSha256 string
 }
 
+// XboardCertConfig is the top-level `cert_config` object returned by
+// cedar2025/Xboard's buildNodeConfig. Xboard does not merge it into
+// tls_settings (that is the Shannon-x/v2board behaviour); it is a free-form
+// array, normalised only for mode/cert_mode. Field names mirror TlsSettings
+// so both sources can feed the same CertInfo.
+type XboardCertConfig struct {
+	Mode                 string      `json:"mode"`
+	CertMode             string      `json:"cert_mode"`
+	CertDomain           string      `json:"cert_domain"`
+	ServerName           string      `json:"server_name"`
+	CertFile             string      `json:"cert_file"`
+	KeyFile              string      `json:"key_file"`
+	TlsCert              string      `json:"tls_cert"`
+	TlsKey               string      `json:"tls_key"`
+	Provider             string      `json:"provider"`
+	Email                string      `json:"email"`
+	DNSEnv               interface{} `json:"dns_env"`
+	RejectUnknownSni     interface{} `json:"reject_unknown_sni"`
+	PinnedPeerCertSha256 string      `json:"pinned_peer_cert_sha256"`
+}
+
 type EncSettings struct {
 	Mode          string `json:"mode"`
 	Ticket        string `json:"ticket"`
@@ -149,6 +179,15 @@ type ShadowsocksNode struct {
 	CommonNode
 	Cipher    string `json:"cipher"`
 	ServerKey string `json:"server_key"`
+	// Xboard shadowsocks: plugin / plugin_opts / obfs are returned by the
+	// panel but neither xray nor sing-box inbound supports a server-side
+	// SS plugin, so they are parsed only so GetNodeInfo can warn loudly
+	// instead of silently running without the plugin the subscription
+	// promises. See the warning in GetNodeInfo.
+	Plugin       string          `json:"plugin"`
+	PluginOpts   string          `json:"plugin_opts"`
+	Obfs         string          `json:"obfs"`
+	ObfsSettings json.RawMessage `json:"obfs_settings"`
 }
 
 type TrojanNode struct {
@@ -218,6 +257,7 @@ type V2UnifiedNode struct {
 	NetworkSettings         json.RawMessage `json:"network_settings"`
 	Encryption              string          `json:"encryption"`
 	EncryptionSettings      EncSettings     `json:"encryption_settings"`
+	Decryption              string          `json:"decryption"`
 	Flow                    string          `json:"flow"`
 	Cipher                  string          `json:"cipher"`
 	ServerKey               string          `json:"server_key"`
@@ -318,6 +358,7 @@ func (c *Client) GetNodeInfoCtx(ctx context.Context) (node *NodeInfo, err error)
 				NetworkSettings:    rsp.NetworkSettings,
 				Encryption:         rsp.Encryption,
 				EncryptionSettings: rsp.EncryptionSettings,
+				Decryption:         rsp.Decryption,
 				Flow:               rsp.Flow,
 			}
 			node.Security = rsp.Tls
@@ -349,11 +390,29 @@ func (c *Client) GetNodeInfoCtx(ctx context.Context) (node *NodeInfo, err error)
 			}
 			node.Security = Tls
 		case "hysteria":
-			node.Hysteria = &HysteriaNode{
-				CommonNode: rsp.CommonNode,
-				UpMbps:     rsp.UpMbps,
-				DownMbps:   rsp.DownMbps,
-				Obfs:       rsp.Obfs,
+			// Xboard: protocol is always "hysteria", version is not in the
+			// config response. obfs-password is only present for v2, so
+			// its presence promotes this node to hysteria2. Without it,
+			// keep v1 (a v2 node with obfs closed also has no password,
+			// but that case is indistinguishable and local NodeType
+			// hysteria2 already covers it via the case below).
+			if rsp.ObfsPassword != "" {
+				node.Type = "hysteria2"
+				node.Hysteria2 = &Hysteria2Node{
+					CommonNode:              rsp.CommonNode,
+					Ignore_Client_Bandwidth: rsp.Ignore_Client_Bandwidth,
+					UpMbps:                  rsp.UpMbps,
+					DownMbps:                rsp.DownMbps,
+					ObfsType:                rsp.Obfs,
+					ObfsPassword:            rsp.ObfsPassword,
+				}
+			} else {
+				node.Hysteria = &HysteriaNode{
+					CommonNode: rsp.CommonNode,
+					UpMbps:     rsp.UpMbps,
+					DownMbps:   rsp.DownMbps,
+					Obfs:       rsp.Obfs,
+				}
 			}
 			node.Security = Tls
 		case "hysteria2":
@@ -426,6 +485,24 @@ func (c *Client) GetNodeInfoCtx(ctx context.Context) (node *NodeInfo, err error)
 			node.AnyTls = rsp
 			node.Security = Tls
 		case "hysteria":
+			// Xboard version detection: see the V2 "hysteria" case above.
+			// If the panel actually sent a v2 config (obfs-password
+			// present), promote to hysteria2 instead of parsing it as v1
+			// and silently dropping the password.
+			var hy2probe struct {
+				ObfsPassword string `json:"obfs-password"`
+			}
+			if uErr := json.Unmarshal(r.Body(), &hy2probe); uErr == nil && hy2probe.ObfsPassword != "" {
+				rsp2 := &Hysteria2Node{}
+				if err = json.Unmarshal(r.Body(), rsp2); err != nil {
+					return nil, fmt.Errorf("decode hysteria2 params error: %s", err)
+				}
+				cm = &rsp2.CommonNode
+				node.Type = "hysteria2"
+				node.Hysteria2 = rsp2
+				node.Security = Tls
+				break
+			}
 			rsp := &HysteriaNode{}
 			err = json.Unmarshal(r.Body(), rsp)
 			if err != nil {
@@ -460,6 +537,29 @@ func (c *Client) GetNodeInfoCtx(ctx context.Context) (node *NodeInfo, err error)
 		if uErr := json.Unmarshal(r.Body(), &certWrap); uErr == nil {
 			node.CertInfo = buildCertInfo(&certWrap.TlsSettings, cm)
 		}
+		// Xboard (cedar2025/Xboard): cert_config is a top-level field,
+		// not merged into tls_settings. Only fall back to it when
+		// tls_settings gave nothing, so existing Shannon/v2board panels
+		// keep their current behaviour unchanged.
+		if node.CertInfo == nil {
+			var xbWrap struct {
+				CertConfig *XboardCertConfig `json:"cert_config"`
+			}
+			if uErr := json.Unmarshal(r.Body(), &xbWrap); uErr == nil && xbWrap.CertConfig != nil {
+				node.CertInfo = buildCertInfoFromXboard(xbWrap.CertConfig, cm)
+			}
+		}
+	}
+
+	// Shadowsocks plugin: warn loudly, never silently drop it. Cores
+	// cannot run a server-side SS plugin, so this node will run without
+	// the plugin the panel subscription promises until a plugin-capable
+	// core is used.
+	if node.Shadowsocks != nil && node.Shadowsocks.Plugin != "" {
+		logrus.WithFields(logrus.Fields{
+			"plugin":      node.Shadowsocks.Plugin,
+			"plugin_opts": node.Shadowsocks.PluginOpts,
+		}).Warn("panel shadowsocks plugin is not supported by xray/sing-box inbounds and will be ignored; clients using the panel subscription plugin will fail to connect")
 	}
 
 	// parse rules and dns
@@ -677,6 +777,68 @@ func buildCertInfo(t *TlsSettings, cm *CommonNode) *CertInfo {
 			if kv := strings.SplitN(env, "=", 2); len(kv) == 2 {
 				info.DNSEnv[kv[0]] = kv[1]
 			}
+		}
+	}
+	return info
+}
+
+// buildCertInfoFromXboard mirrors buildCertInfo for Xboard's top-level
+// cert_config. Xboard accepts both "mode" and "cert_mode", and dns_env /
+// reject_unknown_sni may arrive as a string, a map, a bool, or a number
+// because cert_config is a free-form array on the panel side.
+func buildCertInfoFromXboard(x *XboardCertConfig, cm *CommonNode) *CertInfo {
+	if x == nil {
+		return nil
+	}
+	mode := strings.ToLower(strings.TrimSpace(x.CertMode))
+	if mode == "" {
+		mode = strings.ToLower(strings.TrimSpace(x.Mode))
+	}
+	if mode == "" || mode == "none" {
+		return nil
+	}
+	info := &CertInfo{
+		CertMode:             mode,
+		CertFile:             x.CertFile,
+		KeyFile:              x.KeyFile,
+		TlsCert:              x.TlsCert,
+		TlsKey:               x.TlsKey,
+		Provider:             x.Provider,
+		Email:                x.Email,
+		PinnedPeerCertSha256: x.PinnedPeerCertSha256,
+		DNSEnv:               map[string]string{},
+	}
+	info.CertDomain = x.CertDomain
+	if info.CertDomain == "" {
+		info.CertDomain = x.ServerName
+	}
+	if info.CertDomain == "" && cm != nil {
+		info.CertDomain = cm.ServerName
+	}
+	switch v := x.RejectUnknownSni.(type) {
+	case bool:
+		info.RejectUnknownSni = v
+	case string:
+		info.RejectUnknownSni = v == "true" || v == "1"
+	case float64:
+		info.RejectUnknownSni = v != 0
+	}
+	switch v := x.DNSEnv.(type) {
+	case string:
+		for _, env := range strings.Split(v, ",") {
+			if kv := strings.SplitN(env, "=", 2); len(kv) == 2 {
+				info.DNSEnv[kv[0]] = kv[1]
+			}
+		}
+	case map[string]interface{}:
+		for k, val := range v {
+			if s, ok := val.(string); ok {
+				info.DNSEnv[k] = s
+			}
+		}
+	case map[string]string:
+		for k, s := range v {
+			info.DNSEnv[k] = s
 		}
 	}
 	return info

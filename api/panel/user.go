@@ -38,10 +38,21 @@ func (c *Client) GetUserList() ([]UserInfo, error) {
 	return c.GetUserListCtx(context.Background())
 }
 
+// serverPath returns the V2 path when ApiVersion==2, otherwise the V1
+// UniProxy path. Xboard serves user/push/alive/alivelist under both
+// prefixes; before this fix only config switched to V2, so ApiVersion=2
+// was only half a V2 mode.
+func (c *Client) serverPath(v1, v2 string) string {
+	if c.ApiVersion == 2 {
+		return v2
+	}
+	return v1
+}
+
 // GetUserListCtx is the ctx-aware variant used by the task framework.
 // W3.2 / W3.4 / audit #25 #44.
 func (c *Client) GetUserListCtx(ctx context.Context) ([]UserInfo, error) {
-	const path = "/api/v1/server/UniProxy/user"
+	path := c.serverPath("/api/v1/server/UniProxy/user", "/api/v2/server/user")
 	r, err := c.client.R().
 		SetContext(ctx).
 		SetHeader("If-None-Match", c.userEtag).
@@ -122,7 +133,7 @@ func (c *Client) GetUserAlive() (map[int]int, error) {
 // GetUserAliveCtx is the ctx-aware variant. W3.2 / W3.4.
 func (c *Client) GetUserAliveCtx(ctx context.Context) (map[int]int, error) {
 	c.AliveMap = &AliveMap{}
-	const path = "/api/v1/server/UniProxy/alivelist"
+	path := c.serverPath("/api/v1/server/UniProxy/alivelist", "/api/v2/server/alivelist")
 	r, err := c.client.R().
 		SetContext(ctx).
 		ForceContentType("application/json").
@@ -168,7 +179,7 @@ func (c *Client) ReportUserTrafficCtx(ctx context.Context, userTraffic []UserTra
 	for i := range userTraffic {
 		data[userTraffic[i].UID] = []int64{userTraffic[i].Upload, userTraffic[i].Download}
 	}
-	const path = "/api/v1/server/UniProxy/push"
+	path := c.serverPath("/api/v1/server/UniProxy/push", "/api/v2/server/push")
 	r, err := c.client.R().
 		SetContext(ctx).
 		SetBody(data).
@@ -194,7 +205,7 @@ func (c *Client) ReportNodeOnlineUsersCtx(ctx context.Context, data *map[int][]s
 // Newer Xboard versions return an `alive` delta for the users affected by this
 // full snapshot. Older panels omit it; nil remains backward-compatible.
 func (c *Client) ReportNodeOnlineUsersWithDeltaCtx(ctx context.Context, data *map[int][]string) (map[int]int, error) {
-	const path = "/api/v1/server/UniProxy/alive"
+	path := c.serverPath("/api/v1/server/UniProxy/alive", "/api/v2/server/alive")
 	r, err := c.client.R().
 		SetContext(ctx).
 		SetBody(data).
