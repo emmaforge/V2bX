@@ -13,7 +13,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: shannon-x/v2bx
+  IMAGE_NAME: zzx327317-creator/v2bx
 
 jobs:
   build:
