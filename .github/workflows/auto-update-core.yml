@@ -173,7 +173,3 @@ jobs:
           # 触发 Release.yml 中的构建和发布流程
           echo "Triggering Build and Release workflow..."
           gh workflow run release.yml --ref dev_new
-          
-          # 触发 Docker 分发流程
-          echo "Triggering Docker Publish workflow..."
-          gh workflow run "Publish Docker image.yml" --ref dev_new

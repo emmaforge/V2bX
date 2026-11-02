@@ -21,7 +21,6 @@
 - **TLS 证书管理** — 自动申请/续签 TLS 证书（HTTP / DNS / file 模式），多域名证书独立管理
 - **安全防护** — 内置审计规则、IP 限制、连接数限制、跨节点 IP 限制
 - **流量管控** — 用户级别限速 / 动态限速 / 端口级别限速
-- **Docker 支持** — 提供优化的 Dockerfile，支持 amd64 / arm64 多架构
 - **配置简洁** — JSON5 配置文件（支持注释），修改后自动热重载
 - **IPv6 就绪** — 自动检测并适配 IPv6 环境
 - **滚动发布** — 每次推送自动构建 `latest` release，版本始终最新
@@ -83,45 +82,6 @@ v2bx uninstall       # 卸载 V2bX
 v2bx version         # 查看当前版本
 ```
 
-### Docker 部署
-
-```bash
-# 创建配置目录并编辑配置文件
-mkdir -p /etc/V2bX
-vi /etc/V2bX/config.json
-
-# 启动容器
-docker run -d \
-  --name v2bx \
-  --restart=always \
-  --network=host \
-  -v /etc/V2bX:/etc/V2bX \
-  -v /var/log/V2bX:/var/log/V2bX \
-  ghcr.io/zzx327317-creator/v2bx:latest
-```
-
-> `-v /var/log/V2bX:/var/log/V2bX` 用于持久化连接（access）日志；不挂载的话日志会留在容器可写层，
-> 容器重建时丢失。如果希望连接日志继续输出到 `docker logs`，把 Xray 内核的 `Log.AccessPath` 设为 `"console"`。
-
-### Docker Compose 部署
-
-创建 `docker-compose.yml`：
-
-```yaml
-services:
-  v2bx:
-    image: ghcr.io/zzx327317-creator/v2bx:latest
-    container_name: v2bx
-    restart: always
-    network_mode: host
-    volumes:
-      - /etc/V2bX:/etc/V2bX
-      - /var/log/V2bX:/var/log/V2bX
-```
-
-```bash
-docker compose up -d
-```
 
 ---
 
@@ -592,11 +552,9 @@ V2bX/
 │   ├── V2bX.sh             #   管理脚本（v2bx 命令）
 │   └── initconfig.sh       #   配置生成脚本
 ├── example/                # 配置文件示例
-├── Dockerfile              # Docker 构建文件
 └── .github/workflows/      # CI/CD 工作流
     ├── release.yml          #   构建与发布
-    ├── auto-update-core.yml #   内核自动更新
-    └── Publish Docker image.yml  # Docker 镜像发布
+    └── auto-update-core.yml #   内核自动更新
 ```
 
 ---
