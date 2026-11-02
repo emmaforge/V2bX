@@ -5,7 +5,7 @@ V2bX 节点服务端一键安装与管理脚本，适用于 Ubuntu / Debian / Ce
 ## 一键安装
 
 ```bash
-wget -N https://raw.githubusercontent.com/zzx327317-creator/V2bX/dev_new/V2bX-script-master/install.sh && bash install.sh
+wget -N https://raw.githubusercontent.com/emmaforge/V2bX/dev_new/V2bX-script-master/install.sh && bash install.sh
 ```
 
 ## 文件说明

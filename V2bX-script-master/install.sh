@@ -138,7 +138,7 @@ install_V2bX() {
     cd /usr/local/V2bX/
 
     if  [ $# == 0 ] ;then
-        last_version=$(curl -Ls "https://api.github.com/repos/zzx327317-creator/V2bX/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        last_version=$(curl -Ls "https://api.github.com/repos/emmaforge/V2bX/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$last_version" ]]; then
             echo -e "${red}检测 V2bX 版本失败，可能是超出 Github API 限制，请稍后再试${plain}"
             exit 1
@@ -149,7 +149,7 @@ install_V2bX() {
         echo -e "开始安装 V2bX ${last_version}"
     fi
 
-    local download_url="https://github.com/zzx327317-creator/V2bX/releases/download/${last_version}/V2bX-linux-${arch}.zip"
+    local download_url="https://github.com/emmaforge/V2bX/releases/download/${last_version}/V2bX-linux-${arch}.zip"
     local download_dest="/usr/local/V2bX/V2bX-linux.zip"
     if [[ x"${release}" == x"alpine" ]]; then
         curl -L -o "${download_dest}" --progress-bar --retry 3 --retry-delay 2 "${download_url}"
@@ -236,7 +236,7 @@ SERVICEEOF
     if [[ ! -f /etc/V2bX/config.json ]]; then
         cp config.json /etc/V2bX/
         echo -e ""
-        echo -e "全新安装，请先参看教程：https://github.com/zzx327317-creator/V2bX，配置必要的内容"
+        echo -e "全新安装，请先参看教程：https://github.com/emmaforge/V2bX，配置必要的内容"
         first_install=true
     else
         if [[ x"${release}" == x"alpine" ]]; then
@@ -267,7 +267,7 @@ SERVICEEOF
     if [[ ! -f /etc/V2bX/custom_inbound.json ]]; then
         cp custom_inbound.json /etc/V2bX/
     fi
-    curl -o /usr/bin/V2bX -Ls https://raw.githubusercontent.com/zzx327317-creator/V2bX/dev_new/V2bX-script-master/V2bX.sh
+    curl -o /usr/bin/V2bX -Ls https://raw.githubusercontent.com/emmaforge/V2bX/dev_new/V2bX-script-master/V2bX.sh
     chmod +x /usr/bin/V2bX
     if [ ! -L /usr/bin/v2bx ]; then
         ln -sf /usr/bin/V2bX /usr/bin/v2bx
@@ -298,7 +298,7 @@ SERVICEEOF
     if [[ $first_install == true ]]; then
         read -rp "检测到你为第一次安装V2bX,是否自动直接生成配置文件？(y/n): " if_generate
         if [[ $if_generate == [Yy] ]]; then
-            curl -o ./initconfig.sh -Ls https://raw.githubusercontent.com/zzx327317-creator/V2bX/dev_new/V2bX-script-master/initconfig.sh
+            curl -o ./initconfig.sh -Ls https://raw.githubusercontent.com/emmaforge/V2bX/dev_new/V2bX-script-master/initconfig.sh
             source initconfig.sh
             rm initconfig.sh -f
             generate_config_file

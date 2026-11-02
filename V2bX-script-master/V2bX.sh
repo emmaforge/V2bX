@@ -96,7 +96,7 @@ before_show_menu() {
 }
 
 install() {
-    bash <(curl -Ls https://raw.githubusercontent.com/zzx327317-creator/V2bX/dev_new/V2bX-script-master/install.sh)
+    bash <(curl -Ls https://raw.githubusercontent.com/emmaforge/V2bX/dev_new/V2bX-script-master/install.sh)
     if [[ $? == 0 ]]; then
         if [[ $# == 0 ]]; then
             start
@@ -112,7 +112,7 @@ update() {
     else
         version=$2
     fi
-    bash <(curl -Ls https://raw.githubusercontent.com/zzx327317-creator/V2bX/dev_new/V2bX-script-master/install.sh) $version
+    bash <(curl -Ls https://raw.githubusercontent.com/emmaforge/V2bX/dev_new/V2bX-script-master/install.sh) $version
     if [[ $? == 0 ]]; then
         echo -e "${green}更新完成，已自动重启 V2bX，请使用 V2bX log 查看运行日志${plain}"
         exit
@@ -343,7 +343,7 @@ install_bbr() {
 }
 
 update_shell() {
-    local shell_url="https://raw.githubusercontent.com/zzx327317-creator/V2bX/dev_new/V2bX-script-master/V2bX.sh"
+    local shell_url="https://raw.githubusercontent.com/emmaforge/V2bX/dev_new/V2bX-script-master/V2bX.sh"
     if [[ x"${release}" == x"alpine" ]]; then
         curl -L -o /usr/bin/V2bX --retry 3 --retry-delay 2 "${shell_url}"
     else
@@ -1797,7 +1797,7 @@ update_route_block_rules() {
 show_menu() {
     echo -e "
   ${green}V2bX 后端管理脚本，${plain}${red}不适用于docker${plain}
---- https://github.com/zzx327317-creator/V2bX ---
+--- https://github.com/emmaforge/V2bX ---
   ${green}0.${plain} 修改配置
 ————————————————
   ${green}1.${plain} 安装 V2bX
